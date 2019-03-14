@@ -1,0 +1,50 @@
+# stream消费端服务
+# eureka server的端口不用默认值的话（8761），
+# 则eureka客户端配置需放在本地，不然连接不上注册中心，从而获取不到配置中心的配置
+eureka:
+    client:
+        service-url:
+            defaultZone: http://localhost:8762/eureka/
+    instance:
+        # IP
+        hostname: localhost
+        instance-id: ${spring.application.name}:@project.version@
+spring:
+  application:
+          name: springcloud-Stream-customer
+  cloud:
+    stream:
+      # 粘合剂，具体作用就是与 RabbitMQ 交互
+      binders: # 这是一组binder的集合，这里配置了一个名为testRabbit的binder，这个binder中是包含了一个rabbit的连接信息
+        testRabbit:
+          type: rabbit # 消息组件类型
+          environment: # 设置rabbitmq的相关的环境配置
+            spring:
+              rabbitmq:
+                addresses: localhost
+                port: 5672
+                username: guest
+                password: guest
+                virtual-host: /
+
+      # 这是一组 binding 的集合，这里配置了一个名为 testOutPut 的 binding，
+      # 这个 binding 中配置了指向名 testRabbit 的 binder下的一个交换机 testRabbitExchange
+      bindings:
+        # spring 自带的名字是 input,
+        input: # 这个名字是一个通道的名称
+          destination: testRabbitExchange # 表示要使用的Exchange名称定义
+          content-type: application/json # 设置消息类型，本次为对象json，如果是文本则设置“text/plain”
+          default-binder: testRabbit
+          # 这里用分组来防止多个实例重复消费消息， 加入启用多个实例，
+          # 那么多个实例会同时监听一个队列，然后默认会轮询的让多个实例处理消息队列
+          group: customer1
+        # myInput 是自己定义的通道
+        myInput: # 这个名字是一个通道的名称
+          destination: testRabbitExchange # 表示要使用的Exchange名称定义
+          content-type: application/json # 设置消息类型，本次为对象json，如果是文本则设置“text/plain”
+          default-binder: testRabbit
+          # 这里用分组来防止多个实例重复消费消息， 加入启用多个实例，
+          # 那么多个实例会同时监听一个队列，然后默认会轮询的让多个实例处理消息队列
+          group: customer2
+server:
+  port: 8086
